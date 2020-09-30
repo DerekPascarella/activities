@@ -1,6 +1,3 @@
-using Ayehu.Sdk.ActivityCreation.Interfaces;
-using Ayehu.Sdk.ActivityCreation.Extension;
-using System.Text;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -8,40 +5,32 @@ using System.IO;
 using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
+// ReSharper disable InconsistentNaming
 
-namespace Ayehu.Sdk.ActivityCreation
+namespace dValuate
 {
-    public class ActivityClass : IActivity
+
+    public class EvalRunTime
     {
         private const string POWERCLI_NAME = "VMware.VimAutomation.Core";
-        public string hostName;
-        public string userName;
-        public string password;
-        public string filterApplied;
-        public string cluster;
-        public string dataStore;
-        public string folder;
 
-        public ICustomActivityResult Execute()
-
+        public string Execute(string HostName, string UserName, string Password, string FilterApplied, string Cluster, string Datastore, string Folder)
         {
-            if (cluster == null) throw new ArgumentNullException("cluster");
-
-            if (string.IsNullOrEmpty(filterApplied) == false && bool.Parse(filterApplied) && string.IsNullOrEmpty(cluster) && string.IsNullOrEmpty(dataStore) && string.IsNullOrEmpty(folder))
+            if (string.IsNullOrEmpty(FilterApplied) == false && bool.Parse(FilterApplied) && string.IsNullOrEmpty(Cluster) && string.IsNullOrEmpty(Datastore) && string.IsNullOrEmpty(Folder))
             {
                 throw new Exception("Filter settings are empty.");
             }
 
-            if (string.IsNullOrEmpty(filterApplied))
+            if (string.IsNullOrEmpty(FilterApplied))
             {
                 // Clear everything if FilterApplied is not send
-                cluster = dataStore = folder = string.Empty;
+                Cluster = Datastore = Folder = string.Empty;
             }
 
-            if (string.IsNullOrEmpty(filterApplied) == false && bool.Parse(filterApplied) == false)
+            if (string.IsNullOrEmpty(FilterApplied) == false && bool.Parse(FilterApplied) == false)
             {
                 // Clear everything if FilterApplied = false
-                cluster = dataStore = folder = string.Empty;
+                Cluster = Datastore = Folder = string.Empty;
             }
 
             var dataTable = new DataTable("resultSet");
@@ -99,16 +88,16 @@ namespace Ayehu.Sdk.ActivityCreation
                         ExecuteScript(powerShellInstance, @"Set-PowerCLIConfiguration -DefaultVIServerMode Single -InvalidCertificateAction Ignore -Scope Session  -Confirm:$false");
 
                         // Fix case where Username send domain\username to just username
-                        if (userName.Contains("\\"))
+                        if (UserName.Contains("\\"))
                         {
-                            userName = userName.Substring(userName.LastIndexOf("\\", StringComparison.Ordinal) + 1);
+                            UserName = UserName.Substring(UserName.LastIndexOf("\\", StringComparison.Ordinal) + 1);
                         }
 
                         // Connect
-                        ExecuteScript(powerShellInstance, "Connect-VIServer -Server '" + hostName + "' -User '" + userName + "' -Password '" + password + "' -ErrorAction Continue", "Username is: " + userName + " for host: " + hostName);
+                        ExecuteScript(powerShellInstance, "Connect-VIServer -Server '" + HostName + "' -User '" + UserName + "' -Password '" + Password + "' -ErrorAction Continue", "Username is: " + UserName + " for host: " + HostName);
 
                         // Actual command
-                        var command = string.IsNullOrEmpty(cluster) ? string.IsNullOrEmpty(dataStore) ? string.IsNullOrEmpty(folder) ? "Get-VM;" : "Get-VM -Location " + folder + " -ErrorAction Stop ;" : "Get-Datastore -Name " + dataStore + " -ErrorAction Stop | Get-VM;" : "Get-Cluster " + cluster + " -ErrorAction Stop | Get-VM ;";
+                        var command = string.IsNullOrEmpty(Cluster) ? string.IsNullOrEmpty(Datastore) ? string.IsNullOrEmpty(Folder) ? "Get-VM;" : "Get-VM -Location '" + Folder + "' -ErrorAction Stop ;" : "Get-Datastore -Name '" + Datastore + "' -ErrorAction Stop | Get-VM;" : "Get-Cluster '" + Cluster + "' -ErrorAction Stop | Get-VM ;";
 
                         if (string.IsNullOrEmpty(command) == false)
                         {
@@ -154,7 +143,7 @@ namespace Ayehu.Sdk.ActivityCreation
             selected.WriteXml(stringWriter, XmlWriteMode.WriteSchema, false);
             selected.Dispose();
 
-            return this.GenerateActivityResult(stringWriter.ToString());
+            return stringWriter.ToString();
         }
 
         private IEnumerable<PSObject> ExecuteScript(PowerShell session, string script, string additionalData = "")
